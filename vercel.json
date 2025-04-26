@@ -1,14 +1,7 @@
 {
   "rewrites": [
-    { "source": "/safeapipath/https/:match/:url*", "destination": "https://:match/:url*" },
-    { "source": "/safeapipath/https/:match/:url*/", "destination": "https://:match/:url*/" },
-    { "source": "/safeapipath/http/:match/:url*", "destination": "http://:match/:url*" },
-    { "source": "/safeapipath/http/:match/:url*/", "destination": "http://:match/:url*/" },
-    { "source": "/safeapipath/wss/:match/:url*", "destination": "wss://:match/:url*" },
-    { "source": "/safeapipath/:protocol/:match/:url*", "destination": ":protocol://:match/:url*" },
-    { "source": "/safeapipath/:protocol/:match/:url*/", "destination": ":protocol://:match/:url*/" },
-    { "source": "/safeapipath/:protocol*/:match/:url*", "destination": ":protocol://:match/:url*" },
-    { "source": "/safeapipath/:protocol*/:match/:url*/", "destination": ":protocol://:match/:url*/" },
+    { "source": "/https/:match/:url*", "destination": "https://:match/:url*" },
+    { "source": "/https/:match/:url*/", "destination": "https://:match/:url*/" },
     { "source": "/", "destination": "/api/proxy" }
   ]
 }
