@@ -9,6 +9,6 @@
     { "source": "/safeapipath/:protocol/:match/:url*/", "destination": ":protocol://:match/:url*/" },
     { "source": "/safeapipath/:protocol*/:match/:url*", "destination": ":protocol://:match/:url*" },
     { "source": "/safeapipath/:protocol*/:match/:url*/", "destination": ":protocol://:match/:url*/" },
-    { "source": "/(.*)", "destination": "/api/proxy" }
+    { "source": "/", "destination": "/api/proxy" }
   ]
 }
