@@ -1,55 +1,45 @@
 const { createProxyMiddleware } = require("http-proxy-middleware");
+const { parse } = require("url");
 
 // 从环境变量中读取密码和安全路径
 const PASSWORD = process.env.NEXT_PUBLIC_SAFEPWD;
-const SAFE_PATH = process.env.NEXT_PUBLIC_SAFEPATH || 'apipath';
+const SAFE_PATH = process.env.NEXT_PUBLIC_SAFEPATH || "apipath"; // 默认值为 apipath
 
 module.exports = (req, res) => {
-  // 检查请求路径是否以安全路径开头
-  if (req.url.startsWith(`/${SAFE_PATH}/`)) {
-    // 提取原始URL
-    const originalUrl = req.url.slice(`/${SAFE_PATH}/`.length);
+  const parsedUrl = parse(req.url, true);
+  const pathname = parsedUrl.pathname || "";
+  
+  // 检查是否是安全路径请求
+  if (pathname.startsWith(`/${SAFE_PATH}/`)) {
+    // 提取目标URL
+    const targetPath = pathname.substring(`/${SAFE_PATH}/`.length);
     
-    // 验证URL协议是否合法（http/https/ws/wss）
-    if (/^https?:\/\/.+/i.test(originalUrl) {
-      // HTTP/HTTPS代理
-      const target = originalUrl.split('/').slice(0, 3).join('/');
-      const path = '/' + originalUrl.split('/').slice(3).join('/');
+    // 检查是否是有效的URL（以http://、https://、ws://或wss://开头）
+    if (/^(https?|wss?):\/\//.test(targetPath)) {
+      // 构建目标URL
+      const target = targetPath;
       
-      // 修改请求路径
-      req.url = path;
-      
-      return createProxyMiddleware({
+      // 创建代理
+      createProxyMiddleware({
         target,
         changeOrigin: true,
-        secure: false,
-        pathRewrite: {},
+        ws: /^wss?:\/\//.test(target), // 如果是WebSocket请求，启用ws
+        pathRewrite: {
+          [`^/${SAFE_PATH}/${target}`]: '',
+        },
       })(req, res);
-    } else if (/^wss?:\/\/.+/i.test(originalUrl)) {
-      // WebSocket代理
-      const target = originalUrl.split('/').slice(0, 3).join('/');
-      const path = '/' + originalUrl.split('/').slice(3).join('/');
       
-      // 修改请求路径
-      req.url = path;
-      
-      return createProxyMiddleware({
-        target,
-        changeOrigin: true,
-        secure: false,
-        ws: true,
-        pathRewrite: {},
-      })(req, res);
-    } else {
-      return res.status(400).send('Invalid URL protocol');
+      return;
     }
   }
-
-  // 如果不是安全路径，继续原有密码验证逻辑
+  
+  // 非安全路径请求，执行原有的密码验证逻辑
+  // 检查是否存在 safepwd cookie 并且值等于设置的密码
   const safepwd = req.cookies.safepwd;
   if (safepwd === PASSWORD) {
     // 如果密码正确，移除 safepwd cookie 后再转发请求
     if (req.headers.cookie) {
+      // 从 cookie 中移除 safepwd
       req.headers.cookie = req.headers.cookie
         .split(';')
         .map(cookie => cookie.trim())
@@ -68,14 +58,18 @@ module.exports = (req, res) => {
   } else {
     // 如果密码不正确或不存在，显示密码验证界面
     if (req.method === "POST") {
+      // 处理用户提交的密码
       const userPassword = req.body.password;
       if (userPassword === PASSWORD) {
+        // 如果密码正确，设置 cookie 并刷新页面
         res.setHeader("Set-Cookie", `safepwd=${userPassword}; Path=/; HttpOnly`);
         res.redirect("/");
       } else {
+        // 如果密码错误，返回错误信息
         res.status(401).send("密码错误，请重试。");
       }
     } else {
+      // 返回密码验证界面
       res.send(`
         <!DOCTYPE html>
         <html lang="en">
