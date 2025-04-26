@@ -2,13 +2,18 @@ const { createProxyMiddleware } = require("http-proxy-middleware");
 
 // 从环境变量中读取密码和安全路径
 const PASSWORD = process.env.NEXT_PUBLIC_SAFEPWD;
-const SAFE_PATH = process.env.NEXT_PUBLIC_SAFEPATH || '/safe-api'; // 默认安全路径为/safe-api
+const SAFE_PATH = process.env.NEXT_PUBLIC_SAFEPATH || '/safepath';
 
 module.exports = (req, res) => {
   // 检查请求路径是否以安全路径开头
   if (req.url.startsWith(SAFE_PATH)) {
-    // 提取目标URL
-    const targetUrl = req.url.slice(SAFE_PATH.length);
+    // 提取目标URL（去掉安全路径前缀）
+    let targetUrl = req.url.slice(SAFE_PATH.length);
+    
+    // 移除开头的斜杠（如果有）
+    if (targetUrl.startsWith('/')) {
+      targetUrl = targetUrl.slice(1);
+    }
     
     // 验证目标URL是否以http://或https://开头
     if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
@@ -16,13 +21,16 @@ module.exports = (req, res) => {
       createProxyMiddleware({
         target: targetUrl,
         changeOrigin: true,
-        pathRewrite: {
-          [`^${SAFE_PATH}`]: '', // 移除安全路径前缀
+        pathRewrite: (path) => {
+          // 完全重写路径，只保留目标URL后面的部分
+          const url = new URL(targetUrl);
+          return path.replace(new RegExp(`^${SAFE_PATH}/${url.protocol}//${url.host}`), '');
         },
+        router: () => targetUrl, // 动态设置目标URL
       })(req, res);
       return;
     } else {
-      res.status(400).send('Invalid target URL');
+      res.status(400).send('Invalid target URL - must start with http:// or https://');
       return;
     }
   }
